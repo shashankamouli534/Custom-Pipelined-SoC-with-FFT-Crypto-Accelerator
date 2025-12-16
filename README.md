@@ -1,92 +1,91 @@
-# cpu19-fft-crypto
+# Custom SoC with FFT and Crypto Accelerators
 
-The CPU Architecture:
-• This a 19-bit architecture (Instruction size will be 19-bit).
-• with a specialized instruction set tailored to a specific application or set of applications (e.g., signal processing, cryptography).
-• Created a detailed architectural specification, including pipeline stages, register file, ALU, and memory interfaces.
+This project implements a simple **System-on-Chip (SoC)** design using a custom CPU and two hardware accelerators: **FFT** and **Crypto**.  
+The goal of the project is to understand how a CPU can interact with hardware accelerators using **memory-mapped registers** and shared memory.
 
+The design is written in Verilog/SystemVerilog and simulated using **Icarus Verilog**.
 
-Arithmetic Instructions
-ADD r1, r2, r3
-• Description: Add the values in registers r2 and r3, and store the result in r1.
-• Operation: r1 = r2 + r3
+---
 
-SUB r1, r2, r3
-• Description: Subtract the value in register r3 from the value in register r2, and store the result in r1.
-• Operation: r1 = r2 - r3
+## Project Overview
 
-MUL r1, r2, r3
-• Description: Multiply the values in registers r2 and r3, and store the result in r1.
-• Operation: r1 = r2 * r3
+The SoC consists of:
+- A basic pipelined CPU core
+- An FFT accelerator
+- A cryptographic accelerator
+- Shared RAM
+- A simple interconnect and memory arbiter
 
-DIV r1, r2, r3
-• Description: Divide the value in register r2 by the value in register r3, and store the result in r1.
-• Operation: r1 = r2 / r3
+The CPU controls the accelerators by writing to and reading from their registers.  
+The accelerators run for multiple cycles and signal completion using a status register.
 
-INC r1
-• Description: Increment the value in register r1 by 1.
-• Operation: r1 = r1 + 1
+---
 
-DEC r1
-• Description: Decrement the value in register r1 by 1.
-• Operation: r1 = r1 - 1
+## High-Level Architecture
 
-Logical Instructions
-AND r1, r2, r3
-• Description: Perform a bitwise AND on the values in registers r2 and r3, and store the result in r1.
-• Operation: r1 = r2 & r3
+CPU
+│
+│ CPU Bus
+│
+Interconnect
+│
+├── RAM
+├── FFT Accelerator
+└── Crypto Accelerator
 
-OR r1, r2, r3
-• Description: Perform a bitwise OR on the values in registers r2 and r3, and store the result in r1.
-• Operation: r1 = r2 | r3
+yaml
+Copy code
 
-XOR r1, r2, r3
-• Description: Perform a bitwise XOR on the values in registers r2 and r3, and store the result in r1.
-• Operation: r1 = r2 ^ r3
+The FFT and Crypto accelerators share the same RAM as the CPU.  
+An arbiter is used to handle memory access between the CPU and the accelerators.
 
-NOT r1, r2
-• Description: Perform a bitwise NOT on the value in register r2, and store the result in r1.
-• Operation: r1 = ~r2
+---
 
-Control Flow Instructions
-JMP addr
-• Description: Jump to the specified address.
-• Operation: PC = addr
+## Address Map
 
-BEQ r1, r2, addr
-• Description: Branch to the specified address if the values in registers r1 and r2 are equal.
-• Operation: if (r1 == r2) PC = addr
+| Address Range | Component |
+|--------------|----------|
+| `0x00000xxxxx` | RAM |
+| `0x60000xxxxx` | Crypto Accelerator |
+| `0x70000xxxxx` | FFT Accelerator |
 
-BNE r1, r2, addr
-• Description: Branch to the specified address if the values in registers r1 and r2 are not equal.
-• Operation: if (r1 != r2) PC = addr
+Address decoding is based on the upper address bits.
 
-CALL addr
-• Description: Call a subroutine at the specified address.
-• Operation: stack[SP] = PC + 1; SP = SP - 1; PC = addr
+---
 
-RET
-• Description: Return from a subroutine.
-• Operation: SP = SP + 1; PC = stack[SP]
+## Accelerator Registers
 
-Memory Access Instructions
-LD r1, addr
-• Description: Load the value from the specified memory address into register r1.
-• Operation: r1 = memory[addr]
+Both FFT and Crypto accelerators use the same register layout.
 
-ST addr, r1
-• Description: Store the value in register r1 to the specified memory address.
-• Operation: memory[addr] = r1
+| Offset | Register | Description |
+|------|---------|-------------|
+| `0` | CTRL | Bit 0 starts the accelerator |
+| `1` | STATUS | Bit 0 indicates completion |
+| `2` | IN_BASE | Input data base address |
+| `3` | OUT_BASE | Output data base address |
 
-Custom Instructions (for specialized applications)
-FFT r1, r2
-• Description: Perform a Fast Fourier Transform on the data starting at address r2, and store the result in the location pointed to by r1.
-• Operation: FFT(memory[r2], result); memory[r1] = result
+---
 
-ENC r1, r2
-• Description: Encrypt the data starting at address r2 using a predefined encryption algorithm, and store the result in the location pointed to by r1.
-• Operation: encrypted_data = Encrypt(memory[r2]); memory[r1] = encrypted_data
+## Accelerator Usage
 
-DEC r1, r2
-• Description: Decrypt the data starting at address r2 using a predefined decryption algorithm, and store the result in the location pointed to by r1.
-• Operation: decrypted_data = Decrypt(memory[r2]); memory[r1] = decrypted_data
+The CPU interacts with the accelerators using the following steps:
+
+1. Write the input buffer address
+2. Write the output buffer address
+3. Write `1` to the CTRL register
+4. Poll the STATUS register until DONE is set
+
+---
+
+## Verification
+
+The design is verified using a simple testbench that:
+- Resets the SoC
+- Writes to accelerator registers
+- Starts FFT and Crypto operations
+- Polls for completion
+- Runs accelerators multiple times
+
+Simulation waveforms are generated using GTKWave.
+
+---
